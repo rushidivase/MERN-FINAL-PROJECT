@@ -1,0 +1,12 @@
+.nav-ul li {
+  display: inline-block;
+  padding: 0px 20px;
+}
+
+.footer {
+  text-align: center;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #f1f1f1;
+}
