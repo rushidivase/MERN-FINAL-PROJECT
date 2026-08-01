@@ -1,27 +1,42 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom';
 
 function SignUp() {
+    const navigate = useNavigate();
 
     const [name, setName] = React.useState('');
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
 
-    const handleSubmit = (e) => {
-        fetch('http://localhost:3000/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ name, email, password }),
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                console.log('Success:', data);
-            })
-            .catch((error) => {
-                console.error('Error:', error);
+
+    useEffect(() => {
+        const auth = localStorage.getItem('user');
+        if (auth) {
+            navigate('/');
+        }
+    }, []);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await fetch("http://localhost:3000/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ name, email, password }),
             });
-    }
+            const result = await response.json();
+
+            console.log("Result:", result);
+            localStorage.setItem("user", JSON.stringify(result));
+            if (result) {
+                navigate("/");
+            }
+        } catch (err) {
+            console.error("Error:", err);
+        }
+    };
 
     return (
         <div>
