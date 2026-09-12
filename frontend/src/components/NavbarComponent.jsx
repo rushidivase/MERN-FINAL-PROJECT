@@ -16,7 +16,6 @@ function NavbarComponent() {
             {auth ? <ul className="nav-ul justify-content-center bg-dark">
                 <li><Link to="/">Home</Link></li>
                 <li><Link to="/add">Add Product</Link></li>
-                <li><Link to="/update">Update Product</Link></li>
                 <li><Link to="/profiles">Profiles</Link></li>
                 <li>
                     {auth ? <Link onClick={handleLogout}
