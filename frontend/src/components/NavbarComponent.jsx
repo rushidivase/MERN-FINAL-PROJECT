@@ -6,8 +6,28 @@ function NavbarComponent() {
     const auth = localStorage.getItem('user');
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        localStorage.clear();
+    const handleLogout = async () => {
+        // localStorage.clear();
+        const auth = localStorage.getItem('token');
+        try {
+            if (auth) {
+                await fetch("http://localhost:3000/logout", {
+                    method: "POST",
+                    headers: {
+                        authorization: `bearer ${JSON.parse(auth)}`,
+                        "Content-Type": "application/json"
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Logout Failed: ", error)
+        }
+        finally {
+            localStorage.clear();
+            navigate("/login");
+        }
+
+
         navigate('/signup');
     }
 

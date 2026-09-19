@@ -12,7 +12,11 @@ function ProductListingComponent() {
     }, []);
 
     const getProducts = async () => {
-        let result = await fetch("http://localhost:3000/products");
+        let result = await fetch("http://localhost:3000/products", {
+            headers: {
+                authorization: `bearer ${JSON.parse(localStorage.getItem('token'))}`
+            }
+        });
         result = await result.json();
         console.log(result);
         setProducts(result);
@@ -20,6 +24,9 @@ function ProductListingComponent() {
 
     const handleDelete = async (id) => {
         let result = await fetch(`http://localhost:3000/product/${id}`, {
+            headers: {
+                authorization: `bearer ${JSON.parse(localStorage.getItem('token'))}`
+            },
             method: "DELETE"
         });
         result = await result.json();
@@ -29,7 +36,11 @@ function ProductListingComponent() {
 
     const handleSearch = async (searchTerm) => {
         setSearchTerm(searchTerm);
-        let result = await fetch(`http://localhost:3000/search/${searchTerm}`);
+        let result = await fetch(`http://localhost:3000/search/${searchTerm}`, {
+            headers: {
+                authorization: `bearer ${JSON.parse(localStorage.getItem('token'))}`
+            },
+        });
         result = await result.json();
         console.log(result);
         setProducts(result);

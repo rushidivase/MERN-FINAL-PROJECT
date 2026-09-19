@@ -21,7 +21,13 @@ function AddProduct() {
     }, [productIdParam]);
 
     const getProductDetails = async () => {
-        let result = await fetch(`http://localhost:3000/product/${productIdParam}`);
+        let result = await fetch(`http://localhost:3000/product/${productIdParam}`,
+            {
+                headers: {
+                    authorization: `bearer ${JSON.parse(localStorage.getItem('token'))}`
+                },
+            }
+        );
         result = await result.json();
         console.log(result);
         setName(result.name);
@@ -45,7 +51,8 @@ function AddProduct() {
                 method: "PUT",
                 body: JSON.stringify({ name, price, category, company }),
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    authorization: `bearer ${JSON.parse(localStorage.getItem('token'))}`
                 }
             });
             result = await result.json();
@@ -60,7 +67,9 @@ function AddProduct() {
                 method: "POST",
                 body: JSON.stringify({ name, price, category, company, userId }),
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    authorization: `bearer ${JSON.parse(localStorage.getItem('token'))}`
+
                 }
             });
             result = await result.json();

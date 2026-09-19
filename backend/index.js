@@ -5,6 +5,10 @@ const cors = require('cors');
 app.use(cors());
 const Product = require('./db/Product');
 
+const Jwt = require('jsonwebtoken');
+const jwtKey = 'e-comm';
+const revokedTokens = new Set();
+
 //for initial testing
 app.get('/', (req, res) => {
     res.send('App is running!');
@@ -30,7 +34,14 @@ app.post('/login', async (req, res) => {
         if (req.body.password && req.body.email) {
             let user = await User.findOne(req.body).select('-password');
             if (user) {
-                res.send(user);
+                Jwt.sign({ user }, jwtKey, { expiresIn: '1h' }, (err, token) => {
+                    if (err) {
+                        console.error('Error generating token:', err);
+                        res.status(500).json({ message: 'Internal server error' });
+                    } else {
+                        res.send({ user, auth: token });
+                    }
+                });
             } else {
                 res.status(401).json({ message: 'Invalid credentials' });
             }
@@ -55,7 +66,7 @@ app.post('/add-product', async (req, res) => {
     }
 });
 
-app.get('/products', async (req, res) => {
+app.get('/products', verifyToken, async (req, res) => {
     try {
         let products = await Product.find();
         if (products.length > 0) {
@@ -70,7 +81,7 @@ app.get('/products', async (req, res) => {
     }
 });
 
-app.delete('/product/:id', async (req, res) => {
+app.delete('/product/:id', verifyToken, async (req, res) => {
     try {
         const result = await Product.deleteOne({ _id: req.params.id });
         if (result.deletedCount > 0) {
@@ -85,7 +96,7 @@ app.delete('/product/:id', async (req, res) => {
     }
 });
 
-app.get('/product/:id', async (req, res) => {
+app.get('/product/:id', verifyToken, async (req, res) => {
     try {
         const result = await Product.findOne({ _id: req.params.id });
         if (result) {
@@ -100,7 +111,7 @@ app.get('/product/:id', async (req, res) => {
     }
 });
 
-app.put('/product/:id', async (req, res) => {
+app.put('/product/:id', verifyToken, async (req, res) => {
     try {
         const result = await Product.updateOne(
             { _id: req.params.id },
@@ -118,7 +129,7 @@ app.put('/product/:id', async (req, res) => {
     }
 });
 
-app.get('/search/:key', async (req, res) => {
+app.get('/search/:key', verifyToken, async (req, res) => {
     try {
         let result = await Product.find({
             $or: [
@@ -146,6 +157,40 @@ app.get('/search/:key', async (req, res) => {
     }
 });
 
+app.post('/logout', (req, resp) => {
+    let token = req.headers.authorization;
+
+    if (!token) {
+        return resp.status(401).json({ message: 'Token required' });
+    }
+    token = token.split(' ')[1]; // Remove 'Bearer ' prefix if present
+    if (!token) {
+        return resp.status(401).json({ message: 'Token Invalid' });
+    }
+
+    revokedTokens.add(token);
+    console.log("Token Revoked")
+    resp.status(200).json({
+        message: 'Logout Success'
+    });
+});
+
+function verifyToken(req, res, next) {
+    let token = req.headers['authorization'];
+    if (token) {
+        token = token.split(' ')[1]; // Remove 'Bearer ' prefix if present
+        Jwt.verify(token, jwtKey, (err, valid) => {
+            if (err) {
+                res.status(401).json({ message: 'Invalid token' });
+            } else {
+                req.user = valid.user;
+                next();
+            }
+        });
+    } else {
+        res.status(401).json({ message: 'Token required' });
+    }
+}
 
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
