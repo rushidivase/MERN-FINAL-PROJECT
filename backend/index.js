@@ -19,7 +19,13 @@ const User = require('./db/User');
 
 app.post('/register', async (req, res) => {
     try {
-        const newUser = new User(req.body);
+        const newUser = new User({
+            name: req.body.name,
+            email: req.body.email,
+            password: req.body.password,
+            role: 'USER'
+        });
+
         let result = await newUser.save();
         console.log('User created:', result);
         res.send(result);
@@ -31,6 +37,7 @@ app.post('/register', async (req, res) => {
 
 app.post('/login', async (req, res) => {
     try {
+        console.error("/Login called")
         if (req.body.password && req.body.email) {
             let user = await User.findOne(req.body).select('-password');
             if (user) {
@@ -39,6 +46,11 @@ app.post('/login', async (req, res) => {
                         console.error('Error generating token:', err);
                         res.status(500).json({ message: 'Internal server error' });
                     } else {
+                        if (!user.isActive) {
+                            return res.status(403).json({
+                                message: 'Your Account has been Deactivated. Please Contact administrator'
+                            })
+                        }
                         res.send({ user, auth: token });
                     }
                 });
@@ -54,7 +66,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-app.post('/add-product', async (req, res) => {
+app.post('/add-product', verifyToken, async (req, res) => {
     try {
         const product = new Product(req.body);
         let result = await product.save();
@@ -68,7 +80,15 @@ app.post('/add-product', async (req, res) => {
 
 app.get('/products', verifyToken, async (req, res) => {
     try {
-        let products = await Product.find();
+        let products;
+        if (req.user.role === 'ADMIN') {
+            products = await Product.find();
+        }
+        else {
+            products = await Product.find({
+                userId: req.user._id
+            });
+        }
         if (products.length > 0) {
             res.send(products);
         }
@@ -191,6 +211,144 @@ function verifyToken(req, res, next) {
         res.status(401).json({ message: 'Token required' });
     }
 }
+
+function authorizedRoles(...allowedRole) {
+    return (req, resp, next) => {
+
+        if (!req.user) {
+            return resp.status(401).json({
+                message: 'Unauthorized'
+            });
+        }
+
+        if (!allowedRole.includes(req.user.role)) {
+            return resp.status(403).json({
+                message: 'Access Denied'
+            });
+        }
+
+        next();
+    }
+}
+
+app.get('/admin/user', verifyToken, authorizedRoles('ADMIN'), async (req, resp) => {
+
+    try {
+        const users = await User.find().select('-password');
+        resp.json(users);
+    } catch (error) {
+        resp.status(500).json({
+            message: 'Internal Server Error'
+        });
+    }
+});
+
+app.get('/admin/users',
+    verifyToken,
+    authorizedRoles('ADMIN'),
+    async (req, resp) => {
+        try {
+            const users = (await User.find().select(-password)).sort({ name: 1 });
+            resp.json(users);
+        } catch (error) {
+            console.error('Error Fetching Users:', error);
+            resp.status(500).json({
+                message: 'Internal Server Error'
+            })
+        }
+    }
+)
+
+app.post('/admin/users', verifyToken, authorizedRoles('ADMIN'),
+    async (req, resp) => {
+        try {
+
+            const existingUser = await User.findOne({ email });
+
+            if (!existingUser) {
+                return res.status(409).json({
+                    message: 'User with this email already exists'
+                })
+            }
+
+            const newUser = new User({
+                name,
+                email,
+                password,
+                role: role == 'ADMIN' ? 'ADMIN' : 'USER',
+                isActive: true
+            })
+
+            const savedUser = await newUser.save();
+            const safeUser = savedUser.toObject();
+            delete safeUser.password;
+
+            resp.status(201).json({
+                message: 'User Created Successfully',
+                user: safeUser
+            })
+
+
+        } catch (error) {
+            console.error('Error Creating user', error)
+            resp.status(500).json({
+                message: 'Internal Server Error'
+            })
+        }
+    });
+
+//activate/Deactivate User
+
+app.patch(
+    '/admin/users/:id/status',
+    verifyToken,
+    authorizedRoles('ADMIN'),
+    async (req, resp) => {
+
+        try {
+
+            const { isActive } = req.body;
+
+            if (req.params.id == req.user._id.toString()) {
+                return resp.status(400).json({
+                    message: 'You Cannot Modify Your Own State'
+                })
+            }
+
+            const user = await User.findByIdAndUpdate(
+                req.params.id,
+                {
+                    isActive
+                },
+                {
+                    new: true
+                }
+            ).select('-password');
+
+            if (!user) {
+                return resp.status(404).json({
+                    message: 'User Not Found'
+                })
+            }
+
+            resp.json({
+                message: isActive
+                    ? 'User Activated Successfully'
+                    : 'User deactivated Successfully',
+                user
+            })
+
+
+        } catch (error) {
+            console.error('Error Occured while activating or deactivating user', error)
+            resp.status(500).json({
+                message: 'Internal Server Error'
+            })
+        }
+
+
+    })
+
 
 app.listen(3000, () => {
     console.log('Server is running on port 3000');

@@ -9,6 +9,7 @@ import Login from './components/Login'
 import AddProduct from './components/AddProduct'
 import ProductListingComponent from './components/ProductListingComponent'
 import ProfileComponent from './components/ProfileComponent'
+import UserManagement from './components/UserManagement'
 
 function App() {
   return (
@@ -22,6 +23,13 @@ function App() {
             <Route path="/update/:id" element={<AddProduct />} />
             <Route path="/logout" element={<h1>Logout Component</h1>} />
             <Route path="/profiles" element={<ProfileComponent />} />
+            
+            <Route element={
+              <RoleProtectedComponent allowedRoles={['ADMIN']} />
+            }>
+              <Route path='/user-management' element={<UserManagement />} />
+            </Route>
+
           </Route>
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<Login />} />

@@ -5,6 +5,11 @@ function NavbarComponent() {
 
     const auth = localStorage.getItem('user');
     const navigate = useNavigate();
+    const user = JSON.parse(
+        localStorage.getItem('user')
+    );
+
+    const isAdmin = user?.role === 'ADMIN';
 
     const handleLogout = async () => {
         // localStorage.clear();
@@ -36,6 +41,16 @@ function NavbarComponent() {
             {auth ? <ul className="nav-ul justify-content-center bg-dark">
                 <li><Link to="/">Home</Link></li>
                 <li><Link to="/add">Add Product</Link></li>
+
+                {
+                    isAdmin && (
+                        <li>
+                            <Link to="/user-management">
+                                User Management
+                            </Link>
+                        </li>
+                    )}
+
                 <li><Link to="/profiles">Profiles</Link></li>
                 <li>
                     {auth ? <Link onClick={handleLogout}
@@ -48,7 +63,7 @@ function NavbarComponent() {
                     <li><Link to="/login">Login</Link></li>
                 </ul>
             }
-        </div>
+        </div >
 
     )
 }

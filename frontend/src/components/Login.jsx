@@ -32,7 +32,7 @@ function Login() {
             localStorage.setItem("token", JSON.stringify(result.auth));
             navigate("/");
         } else {
-            alert("Please enter correct details");
+            alert(result.message);
         }
     }
 
